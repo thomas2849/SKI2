@@ -41,7 +41,7 @@ class Labyrinth(Model):
 
 
 
-def Sim_portrayal(agent):
+def agent_portrayal(agent):
     portrayal = {"Shape": "circle",
                  "Filled": "true",
                  "Layer": 0,
@@ -51,7 +51,7 @@ def Sim_portrayal(agent):
 
 
 
-canvas_element = CanvasGrid(Sim_portrayal, 20, 20, 500, 500)
+canvas_element = CanvasGrid(agent_portrayal, 20, 20, 500, 500)
 
 
 server = ModularServer(Labyrinth, [canvas_element], "Simulation Visualization", {"width":10,"height":10})
