@@ -4,6 +4,7 @@ from mesa.space import MultiGrid
 import random
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule
+import numpy as np
 
 class PathFinder(Agent):
 
@@ -22,24 +23,53 @@ class PathFinder(Agent):
     def step(self):
         self.move()
 class Labyrinth(Model):
-    def __init__(self, width, height):
+
+    def __init__(self, width, height,maze):
         super().__init__(width, height)
         self.width = width
         self.height = height
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(self.width, self.height, torus=True)
+        self.maze = self.create_maze(3)
 
-        a = self.random.randrange(self.width)
-        b = self.random.randrange(self.height)
-        ma = PathFinder(self.next_id(), self)
-        self.grid.place_agent(ma, (a, b))
-        self.schedule.add(ma)
+
+
+
 
     def step(self):
         self.schedule.step()
 
+    def create_maze(dim):
+        # Create a grid filled with walls
+        maze = np.ones((dim * 2 + 1, dim * 2 + 1))
 
+        # Define the starting point
+        x, y = (0, 0)
+        maze[2 * x + 1, 2 * y + 1] = 0
 
+        # Initialize the stack with the starting point
+        stack = [(x, y)]
+        while len(stack) > 0:
+            x, y = stack[-1]
+
+            # Define possible directions
+            directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+            random.shuffle(directions)
+
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                if nx >= 0 and ny >= 0 and nx < dim and ny < dim and maze[2 * nx + 1, 2 * ny + 1] == 1:
+                    maze[2 * nx + 1, 2 * ny + 1] = 0
+                    maze[2 * x + 1 + dx, 2 * y + 1 + dy] = 0
+                    stack.append((nx, ny))
+                    break
+            else:
+                stack.pop()
+
+        # Create an entrance and an exit
+        maze[1, 0] = 0
+        maze[-2, -1] = 0
+        return maze
 
 def agent_portrayal(agent):
     portrayal = {"Shape": "circle",
