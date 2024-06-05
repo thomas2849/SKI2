@@ -5,7 +5,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 import numpy as np
 import random
-from queue import Queue
+from queue import Queue, PriorityQueue
 
 class PathFinder(Agent):
     def __init__(self, unique_id, model):
@@ -85,31 +85,45 @@ class Labyrinth(Model):
                 self.schedule.add(self.pathfinder)
 
     def move_agents(self):
-        path = self.find_path(self.maze)
+        path = self.A_star(self.start, self.destination)
         self.pathfinder.path = path
 
-    def find_path(self, maze):
-        # BFS algorithm to find the shortest path
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        start = (1, 0)
-        end = (maze.shape[0] - 2, maze.shape[1] - 2)
-        visited = np.zeros_like(maze, dtype=bool)
-        visited[start] = True
-        queue = Queue()
-        queue.put((start, []))
-        while not queue.empty():
-            (node, path) = queue.get()
-            for dx, dy in directions:
-                next_node = (node[0] + dx, node[1] + dy)
-                if next_node == end:
-                    return path + [next_node]
-                if (0 <= next_node[0] < maze.shape[0] and
-                    0 <= next_node[1] < maze.shape[1] and
-                    maze[next_node] == 0 and
-                    not visited[next_node]):
-                    visited[next_node] = True
-                    queue.put((next_node, path + [next_node]))
-        return []
+    def heuristic(self, start, end):
+        (x1, y1) = start
+        (x2, y2) = end
+        return abs(x1 - x2) + abs(y1 - y2)
+
+    def A_star(self, start, end):
+        frontier = PriorityQueue()
+        frontier.put((0, start))
+        came_from = {}
+        cost_so_far = {}
+        came_from[start] = None
+        cost_so_far[start] = 0
+
+        while not frontier.empty():
+            _, current = frontier.get()
+            if current == end:
+                break
+            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                next = (current[0] + dx, current[1] + dy)
+                if (0 <= next[0] < self.maze.shape[0] and
+                    0 <= next[1] < self.maze.shape[1] and
+                    self.maze[next] == 0):
+                    new_cost = cost_so_far[current] + 1
+                    if next not in cost_so_far or new_cost < cost_so_far[next]:
+                        cost_so_far[next] = new_cost
+                        priority = new_cost + self.heuristic(next, end)
+                        frontier.put((priority, next))
+                        came_from[next] = current
+
+        current = end
+        path = []
+        while current != start:
+            path.append(current)
+            current = came_from[current]
+        path.reverse()
+        return path
 
 def agent_portrayal(agent):
     if isinstance(agent, PathFinder):
