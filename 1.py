@@ -6,7 +6,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule
 import numpy as np
 
-class PathFinder(Agent):
+'''class PathFinder(Agent):
 
     def __init__(self, unique_id, model, found = False):
         super().__init__(unique_id,model)
@@ -22,24 +22,37 @@ class PathFinder(Agent):
 
     def step(self):
         self.move()
+'''
+
+class WallAgent(Agent):
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id,model)
+
+    def step(self):
+        pass
 class Labyrinth(Model):
 
-    def __init__(self, width, height,maze):
-        super().__init__(width, height)
-        self.width = width
-        self.height = height
+    def __init__(self, dim):
+        super().__init__()
+        self.dim = dim
+        self.maze = self.create_maze(dim)
+        maze_height, maze_width = self.maze.shape
+
         self.schedule = RandomActivation(self)
-        self.grid = MultiGrid(self.width, self.height, torus=True)
-        self.maze = self.create_maze(3)
+        self.grid = MultiGrid(maze_width, maze_height, torus=True)
 
-
-
-
+        self.countx = 0
+        for x, row in enumerate(self.maze):
+            for y, cell in enumerate(row):
+                if cell == 1:  # Wall cell
+                    agent = WallAgent(self.next_id(), self)
+                    self.grid.place_agent(agent, (x, y))
+                    self.schedule.add(agent)
 
     def step(self):
         self.schedule.step()
 
-    def create_maze(dim):
+    def create_maze(self, dim):
         # Create a grid filled with walls
         maze = np.ones((dim * 2 + 1, dim * 2 + 1))
 
@@ -72,17 +85,18 @@ class Labyrinth(Model):
         return maze
 
 def agent_portrayal(agent):
-    portrayal = {"Shape": "circle",
+    portrayal = {"Shape": "rect",
                  "Filled": "true",
                  "Layer": 0,
-                 "Color": "red",
-                 "r": 0.5}
+                 "Color": "black",
+                 "w": 1,
+                 "h": 1}
     return portrayal
 
 
 
-canvas_element = CanvasGrid(agent_portrayal, 20, 20, 500, 500)
+canvas_element = CanvasGrid(agent_portrayal, 21, 21, 500, 500)
 
 
-server = ModularServer(Labyrinth, [canvas_element], "Simulation Visualization", {"width":10,"height":10})
+server = ModularServer(Labyrinth, [canvas_element], "Simulation Visualization", {"dim": 10})
 server.launch()
