@@ -98,5 +98,5 @@ def agent_portrayal(agent):
 canvas_element = CanvasGrid(agent_portrayal, 21, 21, 500, 500)
 
 
-server = ModularServer(Labyrinth, [canvas_element], "Simulation Visualization", {"dim": 10})
+server = ModularServer(Labyrinth, [canvas_element], "Labyrinth", {"dim": 10})
 server.launch()
