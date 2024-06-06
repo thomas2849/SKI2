@@ -35,7 +35,7 @@ class Labyrinth(Model):
         self.grid = MultiGrid(self.width, self.height, torus=False)
         self.maze = self.create_maze(dim)
         self.start = (1, 0)
-        self.destination = (2 * dim - 1, 2 * dim - 1)
+        self.destination = (2 * dim - 1, 2 * dim)
         self.pathfinder = PathFinder(self.next_id(), self)
         self.place_agents()
         self.move_agents()
@@ -141,6 +141,6 @@ def agent_portrayal(agent):
                      "h": 1}
     return portrayal
 
-canvas_element = CanvasGrid(agent_portrayal, 21, 21, 500, 500)
-server = ModularServer(Labyrinth, [canvas_element], "Maze Pathfinder", {"width": 21, "height": 21, "dim": 10})
+canvas_element = CanvasGrid(agent_portrayal, 31, 31, 500, 500)
+server = ModularServer(Labyrinth, [canvas_element], "Maze Pathfinder", {"width": 31, "height": 31, "dim": 15})
 server.launch()
