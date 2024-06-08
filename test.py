@@ -1,8 +1,10 @@
+import mesa.visualization
 from mesa import Agent, Model
+from mesa.datacollection import DataCollector
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from mesa.visualization.ModularVisualization import ModularServer
-from mesa.visualization.modules import CanvasGrid
+from mesa.visualization.modules import CanvasGrid, ChartModule
 import numpy as np
 import random
 from queue import Queue, PriorityQueue
@@ -12,12 +14,13 @@ class PathFinder(Agent):
         super().__init__(unique_id, model)
         self.path = []
         self.path_index = 0
-
+        self.cost = 0
     def move(self):
         if self.path_index < len(self.path):
             new_position = self.path[self.path_index]
             self.model.grid.move_agent(self, new_position)
             self.path_index += 1
+            self.cost +=1
 
     def step(self):
         self.move()
@@ -40,8 +43,14 @@ class Labyrinth(Model):
         self.place_agents()
         self.move_agents()
 
+        self.datacollector = DataCollector(
+            model_reporters={
+                "Cost": lambda m: m.pathfinder.cost},
+        )
+
     def step(self):
         self.schedule.step()
+        self.datacollector.collect(self)
 
     def create_maze(self, dim):
         # Create a grid filled with walls
@@ -85,8 +94,10 @@ class Labyrinth(Model):
                 self.schedule.add(self.pathfinder)
 
     def move_agents(self):
-        path = self.A_star(self.start, self.destination)
+        path, cost = self.A_star(self.start, self.destination)
         self.pathfinder.path = path
+        self.pathfinder.cost = 0
+
 
     def heuristic(self, start, end):
         (x1, y1) = start
@@ -123,7 +134,9 @@ class Labyrinth(Model):
             path.append(current)
             current = came_from[current]
         path.reverse()
-        return path
+        return path, cost_so_far[end]
+
+
 
 def agent_portrayal(agent):
     if isinstance(agent, PathFinder):
@@ -142,5 +155,6 @@ def agent_portrayal(agent):
     return portrayal
 
 canvas_element = CanvasGrid(agent_portrayal, 31, 31, 500, 500)
-server = ModularServer(Labyrinth, [canvas_element], "Maze Pathfinder", {"width": 31, "height": 31, "dim": 15})
+chart_element = ChartModule([{"Label": "Cost", "Color": "Red"}], data_collector_name="datacollector")
+server = ModularServer(Labyrinth, [canvas_element, chart_element], "Maze Pathfinder", {"width": 31, "height": 31, "dim": 15})
 server.launch()
