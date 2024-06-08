@@ -7,7 +7,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule
 import numpy as np
 import random
-from queue import Queue, PriorityQueue
+from queue import PriorityQueue
 
 class PathFinder(Agent):
     def __init__(self, unique_id, model):
@@ -15,12 +15,15 @@ class PathFinder(Agent):
         self.path = []
         self.path_index = 0
         self.cost = 0
+        self.muenze = 0
+        self.mazemodus = True
+
     def move(self):
         if self.path_index < len(self.path):
             new_position = self.path[self.path_index]
             self.model.grid.move_agent(self, new_position)
             self.path_index += 1
-            self.cost +=1
+            self.cost += 1
 
     def step(self):
         self.move()
@@ -29,46 +32,69 @@ class Blockage(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
 
+class Neighbours(Agent):
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id, model)
+        self.muenze = 0
+        self.lebendig = True
+
+    def move(self):
+        if self.lebendig:
+            possible_steps = self.model.grid.get_neighborhood(
+                self.pos, moore=True, include_center=False
+            )
+            new_position = self.random.choice(possible_steps)
+            self.model.grid.move_agent(self, new_position)
+
+    def step(self):
+        self.move()
+
 class Labyrinth(Model):
-    def __init__(self, width, height, dim):
+    def __init__(self, width, height, dim, mazemodus):
         super().__init__()
         self.width = width
         self.height = height
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(self.width, self.height, torus=False)
+        self.mazemodus = mazemodus
         self.maze = self.create_maze(dim)
         self.start = (1, 0)
-        self.destination = (2 * dim - 1, 2 * dim)
+        self.destination = (2 * dim - 1, 2 * dim - 1)
         self.pathfinder = PathFinder(self.next_id(), self)
         self.place_agents()
         self.move_agents()
-
         self.datacollector = DataCollector(
-            model_reporters={
-                "Cost": lambda m: m.pathfinder.cost},
+            model_reporters={"Cost": lambda m: m.pathfinder.cost},
         )
+
+
+    def reset_maze(self):
+        self.grid = MultiGrid(self.width, self.height, torus=False)
+        self.pathfinder.muenze = 10
+        self.schedule = mesa.time.RandomActivation(self)
+        for i in range(10):
+            a = Neighbours(i,self)
+            self.schedule.add(a)
+            # Add the agent to a random grid cell
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            self.grid.place_agent(a, (x, y))
 
     def step(self):
         self.schedule.step()
         self.datacollector.collect(self)
+        if not self.grid.is_cell_empty(self.destination):
+            self.reset_maze()  # Change 10 to the required dimension
 
     def create_maze(self, dim):
-        # Create a grid filled with walls
         maze = np.ones((dim * 2 + 1, dim * 2 + 1))
-
-        # Define the starting point
         x, y = (0, 0)
         maze[2 * x + 1, 2 * y + 1] = 0
-
-        # Initialize the stack with the starting point
         stack = [(x, y)]
         while len(stack) > 0:
             x, y = stack[-1]
-
-            # Define possible directions
             directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
             random.shuffle(directions)
-
             for dx, dy in directions:
                 nx, ny = x + dx, y + dy
                 if nx >= 0 and ny >= 0 and nx < dim and ny < dim and maze[2 * nx + 1, 2 * ny + 1] == 1:
@@ -78,8 +104,6 @@ class Labyrinth(Model):
                     break
             else:
                 stack.pop()
-
-        # Create an entrance and an exit
         maze[1, 0] = 0
         maze[2 * dim - 1, 2 * dim] = 0
         return maze
@@ -98,7 +122,6 @@ class Labyrinth(Model):
         self.pathfinder.path = path
         self.pathfinder.cost = 0
 
-
     def heuristic(self, start, end):
         (x1, y1) = start
         (x2, y2) = end
@@ -111,7 +134,6 @@ class Labyrinth(Model):
         cost_so_far = {}
         came_from[start] = None
         cost_so_far[start] = 0
-
         while not frontier.empty():
             _, current = frontier.get()
             if current == end:
@@ -127,7 +149,6 @@ class Labyrinth(Model):
                         priority = new_cost + self.heuristic(next, end)
                         frontier.put((priority, next))
                         came_from[next] = current
-
         current = end
         path = []
         while current != start:
@@ -135,8 +156,6 @@ class Labyrinth(Model):
             current = came_from[current]
         path.reverse()
         return path, cost_so_far[end]
-
-
 
 def agent_portrayal(agent):
     if isinstance(agent, PathFinder):
@@ -152,9 +171,15 @@ def agent_portrayal(agent):
                      "Color": "black",
                      "w": 1,
                      "h": 1}
+    elif isinstance(agent, Neighbours):
+        portrayal = {"Shape": "circle",
+                     "Filled": "true",
+                     "Layer": 0,
+                     "Color": "grey",
+                     "r": 0.5}
     return portrayal
 
 canvas_element = CanvasGrid(agent_portrayal, 31, 31, 500, 500)
 chart_element = ChartModule([{"Label": "Cost", "Color": "Red"}], data_collector_name="datacollector")
-server = ModularServer(Labyrinth, [canvas_element, chart_element], "Maze Pathfinder", {"width": 31, "height": 31, "dim": 15})
+server = ModularServer(Labyrinth, [canvas_element, chart_element], "Maze Pathfinder", {"width": 31, "height": 31, "dim": 15, "mazemodus": True})
 server.launch()
