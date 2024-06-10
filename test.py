@@ -8,6 +8,7 @@ from mesa.visualization.modules import CanvasGrid, ChartModule
 import numpy as np
 import random
 from queue import PriorityQueue
+import matplotlib.pyplot as plt
 
 class PathFinder(Agent):
     def __init__(self, unique_id, model):
@@ -109,6 +110,7 @@ class Labyrinth(Model):
         return maze
 
     def place_agents(self):
+
         for (x, y), value in np.ndenumerate(self.maze):
             if value == 1:
                 blockage = Blockage(self.next_id(), self)
@@ -117,11 +119,17 @@ class Labyrinth(Model):
                 self.grid.place_agent(self.pathfinder, (x, y))
                 self.schedule.add(self.pathfinder)
 
+
+
+
     def move_agents(self):
         path, cost = self.A_star(self.start, self.destination)
         self.pathfinder.path = path
         self.pathfinder.cost = 0
-
+        print(path)
+        cx, cy = zip(*path)
+        plt.plot(cx, cy, marker='o')
+        plt.show()
     def heuristic(self, start, end):
         (x1, y1) = start
         (x2, y2) = end
