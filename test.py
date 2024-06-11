@@ -20,11 +20,19 @@ class PathFinder(Agent):
         self.mazemodus = True
 
     def move(self):
-        if self.path_index < len(self.path):
-            new_position = self.path[self.path_index]
+        if self.mazemodus == True:
+            if self.path_index < len(self.path):
+                new_position = self.path[self.path_index]
+                self.model.grid.move_agent(self, new_position)
+                self.path_index += 1
+                self.cost += 1
+
+        while self.mazemodus == False:
+            possible_steps = self.model.grid.get_neighborhood(
+                self.pos, moore=True, include_center=False
+            )
+            new_position = self.random.choice(possible_steps)
             self.model.grid.move_agent(self, new_position)
-            self.path_index += 1
-            self.cost += 1
 
     def step(self):
         self.move()
@@ -34,10 +42,18 @@ class Blockage(Agent):
         super().__init__(unique_id, model)
 
 class Neighbours(Agent):
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model,muenze):
         super().__init__(unique_id, model)
-        self.muenze = 0
+        self.muenze = muenze
         self.lebendig = True
+
+    def give_money(self):
+        cellmates = self.model.grid.get_cell_list_contents([self.pos])
+        if len(cellmates) > 1  :
+            other = self.random.choice(cellmates)
+            if other.muenze < 3 :
+                other.muenze += 1
+                self.muenze -= 1
 
     def move(self):
         if self.lebendig:
@@ -49,6 +65,8 @@ class Neighbours(Agent):
 
     def step(self):
         self.move()
+        if self.muenze > 5:
+            self.give_money()
 
 class Labyrinth(Model):
     def __init__(self, width, height, dim, mazemodus):
@@ -72,9 +90,22 @@ class Labyrinth(Model):
     def reset_maze(self):
         self.grid = MultiGrid(self.width, self.height, torus=False)
         self.pathfinder.muenze = 10
+
         self.schedule = mesa.time.RandomActivation(self)
-        for i in range(10):
-            a = Neighbours(i,self)
+        x = self.random.randrange(self.grid.width)
+        y = self.random.randrange(self.grid.height)
+        self.grid.place_agent(self.pathfinder, (x, y))
+
+        for i in range(9):  # Reiche
+            a = Neighbours(i,self,10)
+            self.schedule.add(a)
+            # Add the agent to a random grid cell
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            self.grid.place_agent(a, (x, y))
+
+        for i in range(10): # Arme
+            a = Neighbours(i,self,0)
             self.schedule.add(a)
             # Add the agent to a random grid cell
             x = self.random.randrange(self.grid.width)
@@ -84,7 +115,8 @@ class Labyrinth(Model):
     def step(self):
         self.schedule.step()
         self.datacollector.collect(self)
-        if not self.grid.is_cell_empty(self.destination):
+        if not self.grid.is_cell_empty(self.destination) and self.pathfinder.mazemodus==True:
+            self.pathfinder.mazemodus = False
             self.reset_maze()  # Change 10 to the required dimension
 
     def create_maze(self, dim):
@@ -183,14 +215,28 @@ def agent_portrayal(agent):
                      "w": 1,
                      "h": 1}
     elif isinstance(agent, Neighbours):
-        portrayal = {"Shape": "circle",
-                     "Filled": "true",
-                     "Layer": 0,
-                     "Color": "grey",
-                     "r": 0.5}
+
+        if agent.muenze == 0 :
+            portrayal = {"Shape": "circle",
+                         "Filled": "true",
+                         "Layer": 0,
+                         "Color": "blue",
+                         "r": 1}
+        elif 5 > agent.muenze > 0 :
+            portrayal = {"Shape": "circle",
+                         "Filled": "true",
+                         "Layer": 0,
+                         "Color": "yellow",
+                         "r": 1}
+        elif agent.muenze >= 5:  #Reiche
+            portrayal = {"Shape": "circle",
+                         "Filled": "true",
+                         "Layer": 0,
+                         "Color": "green",
+                         "r": 1}
     return portrayal
 
 canvas_element = CanvasGrid(agent_portrayal, 21, 21, 500, 500)
-chart_element = ChartModule([{"Label": "Cost", "Color": "Red"}], data_collector_name="datacollector")
-server = ModularServer(Labyrinth, [canvas_element, chart_element], "Maze Pathfinder", {"width": 21, "height": 21, "dim": 10, "mazemodus": True})
+#chart_element = ChartModule([{"Label": "Cost", "Color": "Red"}], data_collector_name="datacollector")
+server = ModularServer(Labyrinth, [canvas_element], "Maze Pathfinder", {"width": 21, "height": 21, "dim": 10, "mazemodus": True})
 server.launch()
