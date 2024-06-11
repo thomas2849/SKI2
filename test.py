@@ -60,7 +60,7 @@ class Labyrinth(Model):
         self.mazemodus = mazemodus
         self.maze = self.create_maze(dim)
         self.start = (1, 0)
-        self.destination = (2 * dim - 1, 2 * dim - 1)
+        self.destination = (2 * dim - 1, 2 * dim )
         self.pathfinder = PathFinder(self.next_id(), self)
         self.place_agents()
         self.move_agents()
@@ -128,6 +128,8 @@ class Labyrinth(Model):
         self.pathfinder.cost = 0
         print(path)
         cx, cy = zip(*path)
+        plt.scatter([1], [0], color='green', marker='o',s = 80)
+        plt.scatter([19], [20], color='red', marker='o', s=80)
         plt.plot(cx, cy, marker='o')
         plt.show()
     def heuristic(self, start, end):
@@ -163,6 +165,7 @@ class Labyrinth(Model):
             path.append(current)
             current = came_from[current]
         path.reverse()
+        path = [(1,0)] + path
         return path, cost_so_far[end]
 
 def agent_portrayal(agent):
@@ -187,7 +190,7 @@ def agent_portrayal(agent):
                      "r": 0.5}
     return portrayal
 
-canvas_element = CanvasGrid(agent_portrayal, 31, 31, 500, 500)
+canvas_element = CanvasGrid(agent_portrayal, 21, 21, 500, 500)
 chart_element = ChartModule([{"Label": "Cost", "Color": "Red"}], data_collector_name="datacollector")
-server = ModularServer(Labyrinth, [canvas_element, chart_element], "Maze Pathfinder", {"width": 31, "height": 31, "dim": 15, "mazemodus": True})
+server = ModularServer(Labyrinth, [canvas_element, chart_element], "Maze Pathfinder", {"width": 21, "height": 21, "dim": 10, "mazemodus": True})
 server.launch()
