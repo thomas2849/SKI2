@@ -11,31 +11,43 @@ from queue import PriorityQueue
 import matplotlib.pyplot as plt
 
 class PathFinder(Agent):
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model,mazemodus):
         super().__init__(unique_id, model)
         self.path = []
         self.path_index = 0
         self.cost = 0
         self.muenze = 0
-        self.mazemodus = True
+        self.mazemodus = mazemodus
 
     def move(self):
-        if self.mazemodus == True:
-            if self.path_index < len(self.path):
-                new_position = self.path[self.path_index]
-                self.model.grid.move_agent(self, new_position)
-                self.path_index += 1
-                self.cost += 1
-
-        while self.mazemodus == False:
-            possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=False
-            )
-            new_position = self.random.choice(possible_steps)
+        if self.path_index < len(self.path):
+            new_position = self.path[self.path_index]
             self.model.grid.move_agent(self, new_position)
+            self.path_index += 1
+            self.cost += 1
 
+    def move2(self):
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False
+        )
+        new_position = self.random.choice(possible_steps)
+        self.model.grid.move_agent(self, new_position)
+
+    def give_money(self):
+        cellmates = self.model.grid.get_cell_list_contents([self.pos])
+        if len(cellmates) > 1  :
+            other = self.random.choice(cellmates)
+            if other.muenze > 3:
+                other.muenze += 1
+                self.muenze -= 1
     def step(self):
-        self.move()
+        if self.mazemodus == True:
+            self.move()
+        elif self.mazemodus== False:
+            self.move2()
+            if self.muenze > 0:
+                self.give_money()
+                print(self.muenze)
 
 class Blockage(Agent):
     def __init__(self, unique_id, model):
@@ -46,7 +58,7 @@ class Neighbours(Agent):
         super().__init__(unique_id, model)
         self.muenze = muenze
         self.lebendig = True
-
+        self.count = 0
     def give_money(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         if len(cellmates) > 1  :
@@ -62,6 +74,11 @@ class Neighbours(Agent):
             )
             new_position = self.random.choice(possible_steps)
             self.model.grid.move_agent(self, new_position)
+
+            if self.muenze == 0:
+                self.count += 1
+                if self.count == 5 and self.muenze == 0:
+                    self.lebendig = False
 
     def step(self):
         self.move()
@@ -79,7 +96,7 @@ class Labyrinth(Model):
         self.maze = self.create_maze(dim)
         self.start = (1, 0)
         self.destination = (2 * dim - 1, 2 * dim )
-        self.pathfinder = PathFinder(self.next_id(), self)
+        self.pathfinder = PathFinder(self.next_id(), self, mazemodus)
         self.place_agents()
         self.move_agents()
         self.datacollector = DataCollector(
@@ -92,6 +109,7 @@ class Labyrinth(Model):
         self.pathfinder.muenze = 10
 
         self.schedule = mesa.time.RandomActivation(self)
+        self.schedule.add(self.pathfinder)
         x = self.random.randrange(self.grid.width)
         y = self.random.randrange(self.grid.height)
         self.grid.place_agent(self.pathfinder, (x, y))
@@ -112,12 +130,15 @@ class Labyrinth(Model):
             y = self.random.randrange(self.grid.height)
             self.grid.place_agent(a, (x, y))
 
+
     def step(self):
         self.schedule.step()
         self.datacollector.collect(self)
         if not self.grid.is_cell_empty(self.destination) and self.pathfinder.mazemodus==True:
             self.pathfinder.mazemodus = False
-            self.reset_maze()  # Change 10 to the required dimension
+            self.reset_maze()
+
+
 
     def create_maze(self, dim):
         maze = np.ones((dim * 2 + 1, dim * 2 + 1))
@@ -202,11 +223,24 @@ class Labyrinth(Model):
 
 def agent_portrayal(agent):
     if isinstance(agent, PathFinder):
-        portrayal = {"Shape": "circle",
-                     "Filled": "true",
-                     "Layer": 0,
-                     "Color": "red",
-                     "r": 0.5}
+        if agent.mazemodus== True:
+            portrayal = {"Shape": "circle",
+                         "Filled": "true",
+                         "Layer": 0,
+                         "Color": "red",
+                         "r": 0.5}
+        elif agent.mazemodus==False and agent.muenze>=5:
+            portrayal = {"Shape": "circle",
+                         "Filled": "true",
+                         "Layer": 0,
+                         "Color": "grey",
+                         "r": 1}
+        elif agent.mazemodus == False and 0 < agent.muenze < 5:
+            portrayal = {"Shape": "circle",
+                         "Filled": "true",
+                         "Layer": 0,
+                         "Color": "orange",
+                         "r": 1}
     elif isinstance(agent, Blockage):
         portrayal = {"Shape": "rect",
                      "Filled": "true",
@@ -215,24 +249,30 @@ def agent_portrayal(agent):
                      "w": 1,
                      "h": 1}
     elif isinstance(agent, Neighbours):
-
-        if agent.muenze == 0 :
+        if agent.lebendig == True:
+            if agent.muenze == 0 :
+                portrayal = {"Shape": "circle",
+                             "Filled": "true",
+                             "Layer": 0,
+                             "Color": "blue",
+                             "r": 1}
+            elif 5 > agent.muenze > 0 :
+                portrayal = {"Shape": "circle",
+                             "Filled": "true",
+                             "Layer": 0,
+                             "Color": "yellow",
+                             "r": 1}
+            elif agent.muenze >= 5:  #Reiche
+                portrayal = {"Shape": "circle",
+                             "Filled": "true",
+                             "Layer": 0,
+                             "Color": "green",
+                             "r": 1}
+        else:    #self.lebendig = False
             portrayal = {"Shape": "circle",
                          "Filled": "true",
                          "Layer": 0,
-                         "Color": "blue",
-                         "r": 1}
-        elif 5 > agent.muenze > 0 :
-            portrayal = {"Shape": "circle",
-                         "Filled": "true",
-                         "Layer": 0,
-                         "Color": "yellow",
-                         "r": 1}
-        elif agent.muenze >= 5:  #Reiche
-            portrayal = {"Shape": "circle",
-                         "Filled": "true",
-                         "Layer": 0,
-                         "Color": "green",
+                         "Color": "black",
                          "r": 1}
     return portrayal
 
