@@ -104,7 +104,7 @@ class Labyrinth(Model):
         )
 
 
-    def reset_maze(self):
+    def reset_maze(self, L):
         self.grid = MultiGrid(self.width, self.height, torus=False)
         self.pathfinder.muenze = 10
 
@@ -114,7 +114,7 @@ class Labyrinth(Model):
         y = self.random.randrange(self.grid.height)
         self.grid.place_agent(self.pathfinder, (x, y))
 
-        for i in range(9):  # Reiche
+        for i in range(L -1):  # Length of the path L for the number of agents
             a = Neighbours(i,self,10)
             self.schedule.add(a)
             # Add the agent to a random grid cell
@@ -122,7 +122,7 @@ class Labyrinth(Model):
             y = self.random.randrange(self.grid.height)
             self.grid.place_agent(a, (x, y))
 
-        for i in range(10): # Arme
+        for i in range(L): # Arme
             a = Neighbours(i,self,0)
             self.schedule.add(a)
             # Add the agent to a random grid cell
@@ -136,7 +136,8 @@ class Labyrinth(Model):
         self.datacollector.collect(self)
         if not self.grid.is_cell_empty(self.destination) and self.pathfinder.mazemodus==True:
             self.pathfinder.mazemodus = False
-            self.reset_maze()
+            path, cost = self.A_star(self.start, self.destination)
+            self.reset_maze(len(path)) #Length of the path L for the number of agents
 
 
 
@@ -179,7 +180,7 @@ class Labyrinth(Model):
         path, cost = self.A_star(self.start, self.destination)
         self.pathfinder.path = path
         self.pathfinder.cost = 0
-        print(path)
+
         cx, cy = zip(*path)
         plt.scatter([1], [0], color='green', marker='o',s = 80)
         plt.scatter([19], [20], color='red', marker='o', s=80)
