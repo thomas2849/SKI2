@@ -6,7 +6,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule
 import numpy as np
 
-'''class PathFinder(Agent):
+class PathFinder(Agent):
 
     def __init__(self, unique_id, model, found = False):
         super().__init__(unique_id,model)
@@ -22,7 +22,7 @@ import numpy as np
 
     def step(self):
         self.move()
-'''
+
 
 class WallAgent(Agent):
     def __init__(self, unique_id, model):

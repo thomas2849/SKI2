@@ -16,6 +16,7 @@ class PathFinder(Agent):
         self.path = []
         self.path_index = 0
         self.cost = 0
+        self.stepcount=0
         self.muenze = 0
         self.mazemodus = mazemodus
 
@@ -27,11 +28,13 @@ class PathFinder(Agent):
             self.cost += 1
 
     def move2(self):
-        possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=False
-        )
-        new_position = self.random.choice(possible_steps)
-        self.model.grid.move_agent(self, new_position)
+        self.stepcount = self.stepcount+1
+        if self.stepcount >= 20:
+            possible_steps = self.model.grid.get_neighborhood(
+                self.pos, moore=True, include_center=False
+            )
+            new_position = self.random.choice(possible_steps)
+            self.model.grid.move_agent(self, new_position)
 
     def give_money(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
@@ -41,11 +44,15 @@ class PathFinder(Agent):
                 other.muenze += 1
                 self.muenze -= 1
     def step(self):
+
         if self.mazemodus == True:
             self.move()
         elif self.mazemodus== False:
+            if self.stepcount >= 20:
+                return
+            self.stepcount += 1
             self.move2()
-            if self.muenze > 0:
+            if self.muenze > 5 and self.stepcount < 20:
                 self.give_money()
                 print(self.muenze)
 
@@ -60,30 +67,36 @@ class Neighbours(Agent):
         self.lebendig = True
         self.count = 0
     def give_money(self):
-        cellmates = self.model.grid.get_cell_list_contents([self.pos])
-        if len(cellmates) > 1  :
-            other = self.random.choice(cellmates)
-            if other.muenze < 3 :
-                other.muenze += 1
-                self.muenze -= 1
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False
+        )
+        for i in range(len(possible_steps)):
+            cellmates = self.model.grid.get_cell_list_contents([possible_steps[i]])
+            for other in cellmates:
+                if other.muenze < 3 :
+                    other.muenze += 1
+                    self.muenze -= 1
 
     def move(self):
-        if self.lebendig:
-            possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=False
-            )
-            new_position = self.random.choice(possible_steps)
-            self.model.grid.move_agent(self, new_position)
+        self.count = self.count + 1
+        if self.count < 20:
+            if self.lebendig:
+                possible_steps = self.model.grid.get_neighborhood(
+                    self.pos, moore=True, include_center=False
+                )
+                new_position = self.random.choice(possible_steps)
+                self.model.grid.move_agent(self, new_position)
 
-            if self.muenze == 0:
-                self.count += 1
-                if self.count == 5 and self.muenze == 0:
-                    self.lebendig = False
+                if self.muenze == 0:
+                    self.count += 1
+                    if self.count == 5 and self.muenze == 0:
+                        self.lebendig = False
 
     def step(self):
         self.move()
         if self.muenze > 5:
             self.give_money()
+
 
 class Labyrinth(Model):
     def __init__(self, width, height, dim, mazemodus):
@@ -133,11 +146,12 @@ class Labyrinth(Model):
 
     def step(self):
         self.schedule.step()
-        self.datacollector.collect(self)
+        #self.datacollector.collect(self)
         if not self.grid.is_cell_empty(self.destination) and self.pathfinder.mazemodus==True:
             self.pathfinder.mazemodus = False
             path, cost = self.A_star(self.start, self.destination)
             self.reset_maze(len(path)) #Length of the path L for the number of agents
+
 
 
 
