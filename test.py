@@ -28,13 +28,11 @@ class PathFinder(Agent):
             self.cost += 1
 
     def move2(self):
-        self.stepcount = self.stepcount+1
-        if self.stepcount >= 20:
-            possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=False
-            )
-            new_position = self.random.choice(possible_steps)
-            self.model.grid.move_agent(self, new_position)
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False
+        )
+        new_position = self.random.choice(possible_steps)
+        self.model.grid.move_agent(self, new_position)
 
     def give_money(self):
         possible_steps = self.model.grid.get_neighborhood(
@@ -52,9 +50,9 @@ class PathFinder(Agent):
         if self.mazemodus == True:
             self.move()
         elif self.mazemodus== False:
+            self.stepcount += 1
             if self.stepcount >= 20: #checks 20 steps
                 return
-            self.stepcount += 1
             self.move2()
             if self.muenze > 5 and self.stepcount < 20:
                 self.give_money()
