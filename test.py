@@ -52,7 +52,7 @@ class PathFinder(Agent):
         if self.mazemodus == True:
             self.move()
         elif self.mazemodus== False:
-            if self.stepcount >= 20:
+            if self.stepcount >= 20: #checks 20 steps
                 return
             self.stepcount += 1
             self.move2()
@@ -82,6 +82,7 @@ class Neighbours(Agent):
                     self.muenze -= 1
 
     def move(self):
+        #Checks 20 steps
         self.count = self.count + 1
         if self.count < 20:
             if self.lebendig:
