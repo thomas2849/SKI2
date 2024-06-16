@@ -37,12 +37,16 @@ class PathFinder(Agent):
             self.model.grid.move_agent(self, new_position)
 
     def give_money(self):
-        cellmates = self.model.grid.get_cell_list_contents([self.pos])
-        if len(cellmates) > 1  :
-            other = self.random.choice(cellmates)
-            if other.muenze > 3:
-                other.muenze += 1
-                self.muenze -= 1
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False
+        )
+        for i in range(len(possible_steps)):
+            cellmates = self.model.grid.get_cell_list_contents([possible_steps[i]])
+            for other in cellmates:
+
+                if other.muenze < 3 :
+                    other.muenze += 1
+                    self.muenze -= 1
     def step(self):
 
         if self.mazemodus == True:
@@ -144,10 +148,12 @@ class Labyrinth(Model):
             self.grid.place_agent(a, (x, y))
 
 
+
     def step(self):
         self.schedule.step()
         #self.datacollector.collect(self)
         if not self.grid.is_cell_empty(self.destination) and self.pathfinder.mazemodus==True:
+            self.grid.remove_agent(self.pathfinder)   #TO FIX the remove agent error
             self.pathfinder.mazemodus = False
             path, cost = self.A_star(self.start, self.destination)
             self.reset_maze(len(path)) #Length of the path L for the number of agents
