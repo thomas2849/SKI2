@@ -83,7 +83,7 @@ class Neighbours(Agent): # Neighbour Agent in the second phase
 
     def move(self):
         self.count = self.count + 1
-        if self.count < 20:
+        if self.count < 20: #Checks 20 steps
             if self.lebendig:
                 possible_steps = self.model.grid.get_neighborhood(
                     self.pos, moore=True, include_center=False
@@ -139,7 +139,7 @@ class Labyrinth(Model):        #Umgebung / Enviroment
             y = self.random.randrange(self.grid.height)
             self.grid.place_agent(a, (x, y))
 
-        for i in range(L): # Arme
+        for i in range(L): # Arme Agents
             a = Neighbours(i,self,0)
             self.schedule.add(a)
             # Add the agent to a random grid cell
