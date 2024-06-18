@@ -15,26 +15,28 @@ class PathFinder(Agent):
         super().__init__(unique_id, model)
         self.path = []
         self.path_index = 0
+
         self.cost = 0
         self.stepcount=0
+
         self.muenze = 0
         self.mazemodus = mazemodus
 
     def move(self):
         if self.path_index < len(self.path):
-            new_position = self.path[self.path_index]
+            new_position = self.path[self.path_index]  #Iterates through the path from the A* function
             self.model.grid.move_agent(self, new_position)
             self.path_index += 1
             self.cost += 1
 
-    def move2(self):
+    def move2(self):   # move function for the mazemodus == False
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
         new_position = self.random.choice(possible_steps)
         self.model.grid.move_agent(self, new_position)
 
-    def give_money(self):
+    def give_money(self):         # Give money function for pathfinder
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
@@ -58,17 +60,17 @@ class PathFinder(Agent):
                 self.give_money()
                 print(self.muenze)
 
-class Blockage(Agent):
+class Blockage(Agent):     # Wall Agents
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
 
-class Neighbours(Agent):
+class Neighbours(Agent): # Neighbour Agent in the second phase
     def __init__(self, unique_id, model,muenze):
         super().__init__(unique_id, model)
         self.muenze = muenze
         self.lebendig = True
         self.count = 0
-    def give_money(self):
+    def give_money(self): #give money function for the Neighbour Agents
         possible_steps = self.model.grid.get_neighborhood(
             self.pos, moore=True, include_center=False
         )
@@ -80,7 +82,6 @@ class Neighbours(Agent):
                     self.muenze -= 1
 
     def move(self):
-        #Checks 20 steps
         self.count = self.count + 1
         if self.count < 20:
             if self.lebendig:
@@ -101,7 +102,7 @@ class Neighbours(Agent):
             self.give_money()
 
 
-class Labyrinth(Model):
+class Labyrinth(Model):        #Umgebung / Enviroment
     def __init__(self, width, height, dim, mazemodus):
         super().__init__()
         self.width = width
@@ -109,18 +110,18 @@ class Labyrinth(Model):
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(self.width, self.height, torus=False)
         self.mazemodus = mazemodus
-        self.maze = self.create_maze(dim)
-        self.start = (1, 0)
-        self.destination = (2 * dim - 1, 2 * dim )
+        self.maze = self.create_maze(dim)  # dim = dimensions of the maze, increase for higher complexity
+        self.start = (1, 0)     # starting point
+        self.destination = (2 * dim - 1, 2 * dim )  # destination point
         self.pathfinder = PathFinder(self.next_id(), self, mazemodus)
         self.place_agents()
         self.move_agents()
-        self.datacollector = DataCollector(
+        '''self.datacollector = DataCollector(
             model_reporters={"Cost": lambda m: m.pathfinder.cost},
-        )
+        )'''
 
 
-    def reset_maze(self, L):
+    def reset_maze(self, L):    # Second phase
         self.grid = MultiGrid(self.width, self.height, torus=False)
         self.pathfinder.muenze = 10
 
@@ -150,10 +151,10 @@ class Labyrinth(Model):
 
     def step(self):
         self.schedule.step()
-        #self.datacollector.collect(self)
-        if not self.grid.is_cell_empty(self.destination) and self.pathfinder.mazemodus==True:
+        '''self.datacollector.collect(self)'''
+        if not self.grid.is_cell_empty(self.destination) and self.pathfinder.mazemodus==True:         # Switching from First phase to Second phase
             self.grid.remove_agent(self.pathfinder)   #TO FIX the remove agent error
-            self.pathfinder.mazemodus = False
+            self.pathfinder.mazemodus = False         # Changing modes/Phases
             path, cost = self.A_star(self.start, self.destination)
             self.reset_maze(len(path)) #Length of the path L for the number of agents
 
@@ -200,6 +201,7 @@ class Labyrinth(Model):
         self.pathfinder.path = path
         self.pathfinder.cost = 0
 
+        #Graph of the Path
         cx, cy = zip(*path)
         plt.scatter([1], [0], color='green', marker='o',s = 80)
         plt.scatter([19], [20], color='red', marker='o', s=80)
@@ -241,7 +243,7 @@ class Labyrinth(Model):
         path = [(1,0)] + path
         return path, cost_so_far[end]
 
-def agent_portrayal(agent):
+def agent_portrayal(agent):   # Visualation Code
     if isinstance(agent, PathFinder):
         if agent.mazemodus== True:
             portrayal = {"Shape": "circle",
