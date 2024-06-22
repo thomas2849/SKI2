@@ -94,7 +94,23 @@ def agent_portrayal(agent):
     return portrayal
 
 
+'''
+loop = []
+            xcellloop = 0
+            for i in range(12):
+                ycellloop = 0
+                for j in range(12):
+                    loop.append ((xcellloop, ycellloop))
+                    ycellloop +=1
 
+                xcellloop +=1
+
+            for ii in loop:
+                countingcoincell = self.model.grid.get_cell_list_contents([ii])
+                if len(countingcoincell) > 0:
+                    for all in countingcoincell:
+                        print("Muenze:",ii," :", all.muenze)
+'''
 canvas_element = CanvasGrid(agent_portrayal, 21, 21, 500, 500)
 
 
