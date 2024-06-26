@@ -97,7 +97,7 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
                         self.lebendig = False
 
         elif self.count == 20:
-
+            self.model.plot_muenze_distribution()
             exit()  # STOPS THE PROGRAM
 
     def step(self):
