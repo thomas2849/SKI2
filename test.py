@@ -83,6 +83,7 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
     def move(self):
         self.count += 1
         if self.count < 20:  # Checks 20 steps
+
             if self.lebendig:
                 possible_steps = self.model.grid.get_neighborhood(
                     self.pos, moore=True, include_center=False
@@ -94,8 +95,9 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
                     self.count += 1
                     if self.count == 5 and self.muenze == 0:
                         self.lebendig = False
+
         elif self.count == 20:
-            self.model.plot_muenze_distribution()  # Call the plotting function
+
             exit()  # STOPS THE PROGRAM
 
     def step(self):
@@ -149,6 +151,9 @@ class Labyrinth(Model):  # Umgebung / Enviroment
             self.grid.remove_agent(self.pathfinder)
             self.pathfinder.mazemodus = False
             self.reset_maze(len(path))
+
+        if self.pathfinder.mazemodus == False:
+            self.plot_muenze_distribution() # Call the plotting function
 
     def create_maze(self, dim):
         maze = np.ones((dim * 2 + 1, dim * 2 + 1))
