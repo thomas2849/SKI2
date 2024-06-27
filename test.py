@@ -51,7 +51,7 @@ class PathFinder(Agent):
             self.move()
         else:
 
-            if self.stepcount > 20:  #checks 20 steps
+            if self.stepcount >= 20:  #checks 20 steps
                 return
 
             self.move2()
@@ -71,6 +71,7 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
         self.muenze = muenze
         self.lebendig = True
         self.count = 0
+        self.steptwenty =0
 
     def give_money(self):  #give money function for the Neighbour Agents
         possible_steps = self.model.grid.get_neighborhood(
@@ -85,8 +86,8 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
 
     def move(self):
 
-        if self.count <= 20:  # Checks 20 steps
-            self.count += 1
+        if self.steptwenty < 20:  # Checks 20 steps
+            self.steptwenty += 1
             if self.lebendig:
                 possible_steps = self.model.grid.get_neighborhood(
                     self.pos, moore=True, include_center=False
@@ -99,7 +100,7 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
                     if self.count == 5 and self.muenze == 0:
                         self.lebendig = False
 
-        elif self.count == 21:
+        elif self.steptwenty == 20:
             self.model.plot_muenze_distribution()
             exit()  # STOPS THE PROGRAM
 
