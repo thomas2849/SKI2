@@ -19,6 +19,7 @@ class PathFinder(Agent):
         self.stepcount = 0
         self.muenze = 0
         self.mazemodus = mazemodus
+        self.lebendig = True
 
     def move(self):
         if self.path_index < len(self.path):
@@ -49,10 +50,12 @@ class PathFinder(Agent):
         if self.mazemodus:
             self.move()
         else:
-            self.stepcount += 1
-            if self.stepcount >= 20:  #checks 20 steps
+
+            if self.stepcount > 20:  #checks 20 steps
                 return
+
             self.move2()
+            self.stepcount += 1
             if self.muenze > 5 and self.stepcount < 20:
                 self.give_money()
 
@@ -81,9 +84,9 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
                     self.muenze -= 1
 
     def move(self):
-        self.count += 1
-        if self.count < 20:  # Checks 20 steps
 
+        if self.count <= 20:  # Checks 20 steps
+            self.count += 1
             if self.lebendig:
                 possible_steps = self.model.grid.get_neighborhood(
                     self.pos, moore=True, include_center=False
@@ -96,7 +99,7 @@ class Neighbours(Agent):  # Neighbour Agent in the second phase
                     if self.count == 5 and self.muenze == 0:
                         self.lebendig = False
 
-        elif self.count == 20:
+        elif self.count == 21:
             self.model.plot_muenze_distribution()
             exit()  # STOPS THE PROGRAM
 
@@ -245,7 +248,7 @@ class Labyrinth(Model):  # Umgebung / Enviroment
             else:
                 muenze_distribution[muenze] = 1
 
-        alive_agents = sum(1 for agent in self.schedule.agents if isinstance(agent, Neighbours) and agent.lebendig)
+        alive_agents = sum(1 for agent in self.schedule.agents if isinstance(agent, (PathFinder,Neighbours)) and agent.lebendig)
         dead_agents = sum(1 for agent in self.schedule.agents if isinstance(agent, Neighbours) and not agent.lebendig)
 
         x = list(muenze_distribution.keys())
